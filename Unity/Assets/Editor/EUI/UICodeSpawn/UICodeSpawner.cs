@@ -99,6 +99,8 @@ public partial class UICodeSpawner
         strBuilder.AppendLine("namespace ET");
         strBuilder.AppendLine("{");
         
+        strBuilder.AppendFormat("\t[FriendClass(typeof({0}))]\r\n", strDlgName);
+       
         strBuilder.AppendFormat("\tpublic static  class {0}\r\n", strDlgName + "System");
           strBuilder.AppendLine("\t{");
           strBuilder.AppendLine("");
@@ -151,7 +153,8 @@ public partial class UICodeSpawner
         
         strBuilder.AppendLine("namespace ET");
         strBuilder.AppendLine("{");
-
+        strBuilder.AppendLine("\t[FriendClass(typeof(WindowCoreData))]");
+        strBuilder.AppendLine("\t[FriendClass(typeof(UIBaseWindow))]");
         strBuilder.AppendFormat("\t[AUIEvent(WindowID.WindowID_{0})]\n",strDlgName.Substring(3));
         strBuilder.AppendFormat("\tpublic  class {0}EventHandler : IAUIEventHandler\r\n", strDlgName);
           strBuilder.AppendLine("\t{");
@@ -236,9 +239,9 @@ public partial class UICodeSpawner
         
         strBuilder.AppendLine("namespace ET");
         strBuilder.AppendLine("{");
-
-      
-        strBuilder.AppendFormat("\tpublic  class {0} :Entity,IAwake\r\n", strDlgName);
+        strBuilder.AppendLine("\t [ComponentOf(typeof(UIBaseWindow))]");
+       
+        strBuilder.AppendFormat("\tpublic  class {0} :Entity,IAwake,IUILogic\r\n", strDlgName);
           strBuilder.AppendLine("\t{");
           strBuilder.AppendLine("");
           
@@ -328,6 +331,8 @@ public partial class UICodeSpawner
 	    strBuilder.AppendLine("using UnityEngine.UI;");
 	    strBuilder.AppendLine("namespace ET");
 	    strBuilder.AppendLine("{");
+	    strBuilder.AppendLine("\t[ComponentOf(typeof(UIBaseWindow))]");
+	    strBuilder.AppendLine("\t[EnableMethod]");
 	    strBuilder.AppendFormat("\tpublic  class {0} : Entity,IAwake,IDestroy \r\n", strDlgComponentName)
 		    .AppendLine("\t{");
      
@@ -346,12 +351,16 @@ public partial class UICodeSpawner
     }
 
 
-    public static void CreateDestroyWidgetCode( ref StringBuilder strBuilder)
+    public static void CreateDestroyWidgetCode( ref StringBuilder strBuilder,bool isScrollItem = false)
     {
 	    strBuilder.AppendFormat("\t\tpublic void DestroyWidget()");
 	    strBuilder.AppendLine("\n\t\t{");
 	    CreateDlgWidgetDisposeCode(ref strBuilder);
 	    strBuilder.AppendFormat("\t\t\tthis.uiTransform = null;\r\n");
+	    if (isScrollItem)
+	    {
+		    strBuilder.AppendLine("\t\t\tthis.DataId = 0;");
+	    }
 	    strBuilder.AppendLine("\t\t}\n");
     }
     
@@ -395,7 +404,13 @@ public partial class UICodeSpawner
 				
 				if (pair.Key.StartsWith(CommonUIPrefix))
 				{
-					GetSubUIBaseWindowCode(ref strBuilder, pair.Key,strPath);
+					var subUIClassPrefab = PrefabUtility.GetCorrespondingObjectFromOriginalSource(widget);
+					if (subUIClassPrefab==null)
+					{
+						Debug.LogError($"公共UI找不到所属的Prefab! {pair.Key}");
+						return;
+					}
+					GetSubUIBaseWindowCode(ref strBuilder, pair.Key,strPath,subUIClassPrefab.name);
 					continue;
 				}
 				string widgetName = widget.name + strClassType.Split('.').ToList().Last();
@@ -453,7 +468,13 @@ public partial class UICodeSpawner
 
 			    if ( pair.Key.StartsWith(CommonUIPrefix))
 			    {
-				    string subUIClassType = Regex.Replace(pair.Key, @"\d", "");  
+				    var subUIClassPrefab = PrefabUtility.GetCorrespondingObjectFromOriginalSource(widget);
+				    if (subUIClassPrefab==null)
+				    {
+					    Debug.LogError($"公共UI找不到所属的Prefab! {pair.Key}");
+					    return;
+				    }
+				    string subUIClassType = subUIClassPrefab.name;
 				    strBuilder.AppendFormat("\t\tprivate {0} m_{1} = null;\r\n", subUIClassType, pair.Key.ToLower());
 				    continue;
 			    }
@@ -528,10 +549,8 @@ public partial class UICodeSpawner
     }
 
 
-    static void GetSubUIBaseWindowCode(ref StringBuilder strBuilder,string widget,string strPath)
+    static void GetSubUIBaseWindowCode(ref StringBuilder strBuilder,string widget,string strPath, string subUIClassType)
     {
-	    
-	    string subUIClassType = Regex.Replace(widget, @"\d", "");
 	    
 	    strBuilder.AppendFormat("		public {0} {1}\r\n", subUIClassType, widget );
 	    strBuilder.AppendLine("     	{");
@@ -563,6 +582,7 @@ public partial class UICodeSpawner
         WidgetInterfaceList = new List<string>();        
         WidgetInterfaceList.Add("Button");
         WidgetInterfaceList.Add( "Text");
+        WidgetInterfaceList.Add("TMPro.TextMeshProUGUI");
         WidgetInterfaceList.Add("Input");
         WidgetInterfaceList.Add("InputField");
         WidgetInterfaceList.Add( "Scrollbar");
@@ -577,6 +597,7 @@ public partial class UICodeSpawner
         WidgetInterfaceList.Add("UIWarpContent");
         WidgetInterfaceList.Add("LoopVerticalScrollRect");
         WidgetInterfaceList.Add("LoopHorizontalScrollRect");
+        WidgetInterfaceList.Add("UnityEngine.EventSystems.EventTrigger");
     }
 
     private static Dictionary<string, List<Component> > Path2WidgetCachedDict =null;

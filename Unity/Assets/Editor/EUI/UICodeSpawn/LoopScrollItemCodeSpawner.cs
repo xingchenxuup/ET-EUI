@@ -85,9 +85,11 @@ public partial class UICodeSpawner
         strBuilder.AppendLine("using UnityEngine.UI;");
         strBuilder.AppendLine("namespace ET");
         strBuilder.AppendLine("{");
-        strBuilder.AppendFormat("\tpublic  class Scroll_{0} : Entity,IAwake,IDestroy \r\n", strDlgName)
+        strBuilder.AppendLine("\t[EnableMethod]");
+        strBuilder.AppendFormat("\tpublic  class Scroll_{0} : Entity,IAwake,IDestroy,IUIScrollItem \r\n", strDlgName)
             .AppendLine("\t{");
         
+        strBuilder.AppendLine("\t\tpublic long DataId {get;set;}");
         
         strBuilder.AppendLine("\t\tprivate bool isCacheNode = false;");
         strBuilder.AppendLine("\t\tpublic void SetCacheMode(bool isCache)");
@@ -101,7 +103,7 @@ public partial class UICodeSpawner
         strBuilder.AppendLine("\t\t}\n");
         
         CreateWidgetBindCode(ref strBuilder, gameObject.transform);
-        CreateDestroyWidgetCode(ref strBuilder);
+        CreateDestroyWidgetCode(ref strBuilder,true);
         CreateDeclareCode(ref strBuilder);
         
         strBuilder.AppendLine("\t\tpublic Transform uiTransform = null;");
